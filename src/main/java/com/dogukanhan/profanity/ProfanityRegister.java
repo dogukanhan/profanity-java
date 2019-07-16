@@ -26,7 +26,7 @@ public class ProfanityRegister {
     }
 
     public static void main(String args[]) {
-        System.out.println(ProfanityRegister.getRegister().isProfanityFromFile(Locale.ENGLISH, "pussy"));
+        System.out.println(ProfanityRegister.getRegister().isProfanityFromFile(new Locale("tr"), "pussy"));
     }
 
     public static synchronized ProfanityRegister getRegister() {
@@ -40,10 +40,14 @@ public class ProfanityRegister {
 
 
     private void loadFile(Locale locale) {
+        String localePath = locale.toString();
+        if(localePath.contains("_")){
+          localePath =  localePath.split("_")[0];
+        }
         HashSet<String> set = new HashSet<String>(globalBanList);
         map.put(locale, set);
         InputStream file = ProfanityRegister.class
-                .getResourceAsStream(FILE_PATH + locale.toString());
+                .getResourceAsStream(FILE_PATH + localePath);
         br = new BufferedReader(new InputStreamReader(file));
         String st;
         try {
@@ -65,21 +69,29 @@ public class ProfanityRegister {
             throw new NullPointerException("Please set which locale files will be loaded");
     }
 
-    public boolean isProfanity(Locale locale, String word) {
+    public boolean isProfanity(Locale locale, String word,boolean searchFile) {
         HashSet<String> set = map.get(locale);
         if (set == null)
             throw new IllegalArgumentException("Profanity " + locale + " haven't loaded");
-        return set.contains(word);
+        if(set.contains(word))
+            return true;
+        else if(searchFile)
+            return isProfanityFromFile(locale,word);
+        else
+            return false;
     }
 
     public boolean isProfanityFromFile(Locale locale, String word) {
-
+        String localePath = locale.toString();
+        if(localePath.contains("_")){
+            localePath =  localePath.split("_")[0];
+        }
         if (globalBanList.contains(word))
             return true;
 
         try {
             InputStream file = ProfanityRegister.class
-                    .getResourceAsStream(FILE_PATH + locale.toString());
+                    .getResourceAsStream(FILE_PATH + localePath);
             br = new BufferedReader(new InputStreamReader(file));
             String st;
             while ((st = br.readLine()) != null) {

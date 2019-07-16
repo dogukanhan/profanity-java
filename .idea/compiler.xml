@@ -10,7 +10,7 @@
       </profile>
     </annotationProcessing>
     <bytecodeTargetLevel>
-      <module name="profanity" target="1.6" />
+      <module name="profanity" target="7" />
     </bytecodeTargetLevel>
   </component>
 </project>
