@@ -13,20 +13,30 @@ public class ProfanityRegister {
 
     private Locale[] localeToLoad;
     private static final String FILE_PATH = "/data/";
-    private final Map<Locale, HashSet<String>> map;
+    private final Map<String, HashSet<String>> map;
     private final HashSet<String> globalBanList;
     private BufferedReader br;
     private static ProfanityRegister instance;
 
     private ProfanityRegister() {
 
-        this.map = new HashMap<Locale, HashSet<String>>();
-        this.globalBanList = new HashSet<String>();
+        this.map = new HashMap<>();
+        this.globalBanList = new HashSet<>();
 
     }
 
+    private String key(Locale locale) {
+        String localePath = locale.toString();
+        if (localePath.contains("_")) {
+            localePath = localePath.split("_")[0];
+        }
+        return localePath;
+    }
+
+
     public static void main(String args[]) {
-        System.out.println(ProfanityRegister.getRegister().isProfanityFromFile(new Locale("tr"), "pussy"));
+        ProfanityRegister.getRegister().setLocales(new Locale("en_US")).loadLocales();
+        System.out.println(ProfanityRegister.getRegister().isProfanity(Locale.ENGLISH, "pussy", false));
     }
 
     public static synchronized ProfanityRegister getRegister() {
@@ -40,12 +50,9 @@ public class ProfanityRegister {
 
 
     private void loadFile(Locale locale) {
-        String localePath = locale.toString();
-        if(localePath.contains("_")){
-          localePath =  localePath.split("_")[0];
-        }
-        HashSet<String> set = new HashSet<String>(globalBanList);
-        map.put(locale, set);
+        String localePath = key(locale);
+        HashSet<String> set = new HashSet<>(globalBanList);
+        map.put(localePath, set);
         InputStream file = ProfanityRegister.class
                 .getResourceAsStream(FILE_PATH + localePath);
         br = new BufferedReader(new InputStreamReader(file));
@@ -69,36 +76,37 @@ public class ProfanityRegister {
             throw new NullPointerException("Please set which locale files will be loaded");
     }
 
-    public boolean isProfanity(Locale locale, String word,boolean searchFile) {
-        HashSet<String> set = map.get(locale);
+    public boolean isProfanity(Locale locale, String word, boolean searchFile) {
+        HashSet<String> set = map.get(key(locale));
         if (set == null)
-            throw new IllegalArgumentException("Profanity " + locale + " haven't loaded");
-        if(set.contains(word))
+            if (searchFile)
+                return isProfanityFromFile(locale, word);
+            else
+                return false;
+        if (set.contains(word))
             return true;
-        else if(searchFile)
-            return isProfanityFromFile(locale,word);
-        else
-            return false;
+
+        return false;
     }
 
     public boolean isProfanityFromFile(Locale locale, String word) {
-        String localePath = locale.toString();
-        if(localePath.contains("_")){
-            localePath =  localePath.split("_")[0];
-        }
+        String localePath = key(locale);
+
         if (globalBanList.contains(word))
             return true;
 
         try {
             InputStream file = ProfanityRegister.class
                     .getResourceAsStream(FILE_PATH + localePath);
-            br = new BufferedReader(new InputStreamReader(file));
-            String st;
-            while ((st = br.readLine()) != null) {
-                if (word.equals(st))
-                    return true;
+            if (file != null) {
+                br = new BufferedReader(new InputStreamReader(file));
+                String st;
+                while ((st = br.readLine()) != null) {
+                    if (word.equals(st))
+                        return true;
+                }
+                br.close();
             }
-            br.close();
         } catch (IOException e) {
             e.printStackTrace();
         }
